@@ -1,5 +1,7 @@
 var websocket = new WebSocket(window.location.href.replace("http","ws") + "ws");
 
+var serveractive = false;
+
 function appendToConsole(text,clas) {
   var cons = $("#console");
   var bottom = (Math.abs(cons.outerHeight() - (cons[0].scrollHeight - cons.scrollTop())) < 1);
@@ -18,6 +20,9 @@ websocket.onmessage = function(event) {
       break;
     case "error":
       console.log("Error: " + data.content.output)
+      break;
+    case "status":
+      updatestatus(data.content);
       break;
     default:
       console.log("Recieved improper type from server of " + data.type);
@@ -38,3 +43,18 @@ $("#consolebox").keypress(function(e) {
     $("#consolebox").val("")
   }
 })
+
+function askforstatus() {
+  websocket.send(JSON.stringify({
+    "type":"status"
+  }));
+}
+function updatestatus(status) {
+  if(status.active) {
+    $("#consolebox").prop('disabled',false);
+    $("#console").removeClass("disabledconsole");
+  }  else {
+    $("#consolebox").prop('disabled',true);
+    $("#console").addClass("disabledconsole");
+  }
+}

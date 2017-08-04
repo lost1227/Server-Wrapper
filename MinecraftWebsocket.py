@@ -31,6 +31,15 @@ def sendconsole(message):
         }
     })
 
+def sendstatus():
+    global proc
+    encodemessage({
+        "type":"status",
+        "content":{
+            "active": proc.poll() is None
+        }
+    })
+
 # The main handler for websocket connections
 class MainWebSocket(tornado.websocket.WebSocketHandler):
     # Adds the newly formed websocket to the set of websockets
@@ -54,6 +63,8 @@ class MainWebSocket(tornado.websocket.WebSocketHandler):
                             startserver(server_dir=serverdata["server_dir"],run=serverdata["run"],args=serverdata["args"])
                         else: raise ValueError("Bad JSON")
                 else: raise ValueError("Bad JSON")
+            elif data["type"] == "status":
+                sendstatus()
             elif data["type"] == "stop_webserver":
                 stopwebserver()
             else:
@@ -86,6 +97,8 @@ class RenderPage(tornado.web.RequestHandler):
     def get(self):
         if(self.request.uri.endswith(".css")):
              self.set_header("Content-Type", 'text/css; charset="utf-8"')
+        elif(self.request.uri.endswith(".js")):
+            self.set_header("Content-Type", 'text/javascript; charset="utf-8"')
         self.render(self.request.uri.strip("/"))
 
 thread = None # The thread directing the output from the minecraft server to the client through the websockets
@@ -98,6 +111,7 @@ def startserver(server_dir=None,run="server.jar",args=["-Xmx1024M","-Xms1024M","
     proc = subprocess.Popen(process,stdin=subprocess.PIPE,stdout=subprocess.PIPE,encoding=locale.getpreferredencoding(),cwd=server_dir)
     thread = Thread(target=loopserver,kwargs={"proc":proc})
     thread.start()
+    sendstatus()
 
 # The code running in the thread to direct the output form the minecraft server to the client through the websocket
 def loopserver(proc):
@@ -105,6 +119,7 @@ def loopserver(proc):
         line = proc.stdout.readline()
         if line != '':
             sendconsole(line.rstrip())
+    sendstatus()
 
 # Send commands to the minecraft server
 def writetoserver(inpt, sender=None):
@@ -138,12 +153,15 @@ def stopwebserver():
     tornado.ioloop.IOLoop.instance().stop()
 
 # Check for input telling the server to stop
-running = True;
+running = True
 def pollstop():
+    global proc
     while running:
         inp = input(">")
         if(inp == "exit"):
             stopwebserver()
+        elif(inp == "status"):
+            print(proc.poll() is None);
 
 if __name__ == '__main__':
     settings = {
