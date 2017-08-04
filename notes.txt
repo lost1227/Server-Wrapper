@@ -1,0 +1,12 @@
+JSON to be sent by client:
+  Send command: {"type":"console","data": _the command_ }
+  Start server: {
+      "type":"start",
+      "data":{
+          "server_dir":"C:/Users/jordan/Desktop/minecraft server",
+          "run":"minecraft_server.1.12.1.jar",
+          "args":["-Xmx1024M","-Xms1024M","nogui"]
+      }
+  }
+
+    

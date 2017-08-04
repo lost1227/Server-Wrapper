@@ -36,7 +36,35 @@ class MainWebSocket(tornado.websocket.WebSocketHandler):
 
     def on_message(self, message):
         #print("Recieved message %s" % message)
-        writetoserver(message)
+        data = json.loads(message)
+        try:
+            if data["type"] == "console":
+                writetoserver(data["data"],self)
+            elif data["type"] == "start":
+                global proc
+                if type(data["data"]) is dict:
+                    serverdata = data["data"]
+                    if proc.poll() is not None:
+                        if type(serverdata["server_dir"]) is str and type(serverdata["run"]) is str and type(serverdata["args"]) is list:
+                            startserver(server_dir=serverdata["server_dir"],run=serverdata["run"],args=serverdata["args"])
+                        else: raise ValueError("Bad JSON")
+                else: raise ValueError("Bad JSON")
+            else:
+                raise ValueError("Bad JSON")
+        except (ValueError,KeyError,json.decoder.JSONDecodeError):
+            self.write_message(json.dumps({
+                "type":"error",
+                "content":{
+                    "output": "Malformed JSON. %s cannot be understood by this server" % message
+                }
+            }))
+        except NotADirectoryError:
+            self.write_message(json.dumps({
+                "type":"error",
+                "content":{
+                    "output": "Improper directory. %s is not a valid path" % serverdata["server_dir"]
+                }
+            }))
 
     def on_close(self):
         pass
@@ -56,11 +84,11 @@ proc = None
 def startserver(server_dir=None,run="server.jar",args=["-Xmx1024M","-Xms1024M","nogui"]):
     process = ["java", "-jar", run]
     process.extend(args)
-    print("Starting process")
+    #print("Starting process")
     global proc
     global thread
     proc = subprocess.Popen(process,stdin=subprocess.PIPE,stdout=subprocess.PIPE,encoding=locale.getpreferredencoding(),cwd=server_dir)
-    print("starting loop")
+    #print("starting loop")
     thread = Thread(target=loopserver,kwargs={"proc":proc})
     thread.start()
 
@@ -74,10 +102,20 @@ def loopserver(proc):
             sendconsole(line.rstrip())
     #print("Loop terminated")
 
-def writetoserver(inpt):
+def writetoserver(inpt, sender=None):
     global proc
-    proc.stdin.write(inpt + "\n")
-    proc.stdin.flush()
+    if proc.poll() is None:
+        proc.stdin.write(inpt + "\n")
+        proc.stdin.flush()
+    elif sender is not Null:
+        sender.write_message(json.dumps({
+            "type":"error",
+            "content":{
+                "output": "Server not running. %s cannot be run" % inpt
+            }
+        }))
+    else:
+        print("Can't execute %s, server not running",inpt)
 
 if __name__ == '__main__':
 
