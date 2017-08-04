@@ -49,6 +49,8 @@ class MainWebSocket(tornado.websocket.WebSocketHandler):
                             startserver(server_dir=serverdata["server_dir"],run=serverdata["run"],args=serverdata["args"])
                         else: raise ValueError("Bad JSON")
                 else: raise ValueError("Bad JSON")
+            elif data["type"] == "stop_webserver":
+                stopwebserver()
             else:
                 raise ValueError("Bad JSON")
         except (ValueError,KeyError,json.decoder.JSONDecodeError):
@@ -117,6 +119,25 @@ def writetoserver(inpt, sender=None):
     else:
         print("Can't execute %s, server not running",inpt)
 
+def stopwebserver():
+    global proc
+    if proc.poll() is None:
+        writetoserver("stop")
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            print("Process failed to stop. Killing")
+            proc.kill()
+            proc.wait()
+    tornado.ioloop.IOLoop.instance().stop()
+
+def pollstop():
+    while True:
+        inp = input(">")
+        if(inp == "exit"):
+            stopwebserver()
+            break
+
 if __name__ == '__main__':
 
     settings = {
@@ -127,6 +148,9 @@ if __name__ == '__main__':
         (r"/dynamic/.*", RenderPage),
         (r"/ws", MainWebSocket),
     ],**settings)
+
+    stop = Thread(target=pollstop)
+    stop.start()
 
     app.listen(8080)
     startserver(server_dir="C:\\Users\\jordan\\Desktop\\minecraft server",run="minecraft_server.1.12.1.jar")
