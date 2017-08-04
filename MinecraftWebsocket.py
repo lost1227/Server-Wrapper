@@ -112,7 +112,7 @@ def writetoserver(inpt, sender=None):
     if proc.poll() is None:
         proc.stdin.write(inpt + "\n")
         proc.stdin.flush()
-    elif sender is not Null:
+    elif sender is not None:
         sender.write_message(json.dumps({
             "type":"error",
             "content":{
@@ -125,6 +125,8 @@ def writetoserver(inpt, sender=None):
 # Stop the running webserver
 def stopwebserver():
     global proc
+    global running
+    running = False
     if proc.poll() is None:
         writetoserver("stop")
         try:
@@ -136,12 +138,12 @@ def stopwebserver():
     tornado.ioloop.IOLoop.instance().stop()
 
 # Check for input telling the server to stop
+running = True;
 def pollstop():
-    while True:
+    while running:
         inp = input(">")
         if(inp == "exit"):
             stopwebserver()
-            break
 
 if __name__ == '__main__':
     settings = {
@@ -157,5 +159,5 @@ if __name__ == '__main__':
     stop.start()
 
     app.listen(8080)
-    startserver(server_dir="C:\\Users\\jordan\\Desktop\\minecraft server",run="minecraft_server.1.12.1.jar")
+    startserver(server_dir="/home/jordan/Downloads/minecraft_server",run="minecraft_server.1.12.1.jar")
     tornado.ioloop.IOLoop.current().start()
