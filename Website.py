@@ -7,53 +7,54 @@ from threading import Thread
 import json
 import os.path
 if __name__ == '__main__':
-    import Minecraft as mserver
+    import Minecraft
 
-# The set of open websockets
-connections = set()
-# Polls all the websockets in the set and sends them a message
-def sendmessage(message):
-    removable = set()
-    for ws in connections:
-        if not ws.ws_connection or not ws.ws_connection.stream.socket:
-            removable.add(ws)
-        else:
-            ws.write_message(message)
-    for ws in removable:
-        connections.remove(ws) # remove dead connections
+class Socketinterface:
+    # The set of open websockets
+    connections = set()
+    # Polls all the websockets in the set and sends them a message
+    def sendmessage(self,message):
+        removable = set()
+        for ws in self.connections:
+            if not ws.ws_connection or not ws.ws_connection.stream.socket:
+                removable.add(ws)
+            else:
+                ws.write_message(message)
+        for ws in removable:
+            self.connections.remove(ws) # remove dead connections
 
-def encodemessage(message):
-    sendmessage(json.dumps(message));
+    def encodemessage(self,message):
+        self.sendmessage(json.dumps(message));
 
-def sendconsole(message):
-    encodemessage({
-        "type":"console",
-        "content":{
-            "output": message
-        }
-    })
+    def sendconsole(self,message):
+        self.encodemessage({
+            "type":"console",
+            "content":{
+                "output": message
+            }
+        })
 
-def sendstatus():
-    global proc
-    encodemessage({
-        "type":"status",
-        "content":{
-            "active": proc.poll() is None
-        }
-    })
+    def sendstatus(self,server):
+        self.encodemessage({
+            "type":"status",
+            "content":{
+                "active": server.running()
+            }
+        })
 
 # The main handler for websocket connections
 class MainWebSocket(tornado.websocket.WebSocketHandler):
     # Adds the newly formed websocket to the set of websockets
     def open(self):
         self.set_nodelay(True)
-        connections.add(self)
+        socks.connections.add(self)
 
     # Recieves a message from the websocket. Decodes the JSON, then figures out how to handle the message
     def on_message(self, message):
+        global mserver
         #print("Recieved message %s" % message)
-        data = json.loads(message)
         try:
+            data = json.loads(message)
             if data["type"] == "console":
                 mserver.writetoserver(data["data"],self)
             elif data["type"] == "start":
@@ -61,11 +62,15 @@ class MainWebSocket(tornado.websocket.WebSocketHandler):
                     serverdata = data["data"]
                     if not mserver.running():
                         if type(serverdata["server_dir"]) is str and type(serverdata["run"]) is str and type(serverdata["args"]) is list:
-                            mserver.startserver(server_dir=serverdata["server_dir"],run=serverdata["run"],args=serverdata["args"])
+                            mserver = Minecraft.mserver(server_dir=serverdata["server_dir"],run=serverdata["run"],args=serverdata["args"])
+                            mserver.startserver()
                         else: raise ValueError("Bad JSON")
+                elif type(data["data"]) is str and data["data"] == "start":
+                    if not mserver.running():
+                        mserver.startserver()
                 else: raise ValueError("Bad JSON")
             elif data["type"] == "status":
-                sendstatus()
+                socks.sendstatus(mserver)
             elif data["type"] == "stop_webserver":
                 stopwebserver()
             else:
@@ -112,13 +117,12 @@ def stopwebserver():
 # Check for input telling the server to stop
 running = True
 def pollstop():
-    global proc
     while running:
         inp = input(">")
         if(inp == "exit"):
             stopwebserver()
         elif(inp == "status"):
-            print(proc.poll() is None);
+            print(mserver.proc.poll() is None);
 
 if __name__ == '__main__':
     settings = {
@@ -130,10 +134,13 @@ if __name__ == '__main__':
         (r"/ws", MainWebSocket),
     ],**settings)
 
+    socks = Socketinterface()
+    mserver = Minecraft.mserver(socket=socks,server_dir="C:\\Users\\jordan\\Desktop\\minecraft server",run="minecraft_server.1.12.1.jar")
+
     stop = Thread(target=pollstop)
     stop.start()
 
     app.listen(8080)
-    mserver.startserver(server_dir="C:\\Users\\jordan\\Desktop\\minecraft server",run="minecraft_server.1.12.1.jar")
+    mserver.startserver()
     #mserver.startserver(server_dir="/home/jordan/Downloads/minecraft_server",run="minecraft_server.1.12.1.jar")
     tornado.ioloop.IOLoop.current().start()
