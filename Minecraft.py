@@ -23,7 +23,10 @@ class mserver:
         }
 
     def startserver(self):
-        process = ["java", "-jar", self.serverdetails["run"]]
+        if self.serverdetails["run"].endswith(".jar"):
+            process = ["java", "-jar", self.serverdetails["run"]]
+        else:
+            process = [self.serverdetails["run"]]
         process.extend(self.serverdetails["args"])
         self.proc = subprocess.Popen(process,stdin=subprocess.PIPE,stdout=subprocess.PIPE,encoding=locale.getpreferredencoding(),cwd=self.serverdetails["server_dir"])
         thread = Thread(target=self.loopserver,kwargs={"proc":self.proc})

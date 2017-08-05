@@ -6,8 +6,8 @@ import locale
 from threading import Thread
 import json
 import os.path
-if __name__ == '__main__':
-    import Minecraft
+import Minecraft
+import ServerManager as sm
 
 class Socketinterface:
     # The set of open websockets
@@ -135,7 +135,12 @@ if __name__ == '__main__':
     ],**settings)
 
     socks = Socketinterface()
-    mserver = Minecraft.mserver(socket=socks,server_dir="C:\\Users\\jordan\\Desktop\\minecraft server",run="minecraft_server.1.12.1.jar")
+
+    if not sm.loadservers():
+        stopwebserver()
+    sm.current = sm.getdefserver()
+
+    mserver = Minecraft.mserver(socket=socks,server_dir=sm.current["data"]["server_dir"],run=sm.current["data"]["run"],args=sm.current["data"]["args"])
 
     stop = Thread(target=pollstop)
     stop.start()
