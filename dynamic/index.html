@@ -11,6 +11,12 @@
         <input type="text" id="consolebox">
       </span>
     </div>
+    <select id="serverselect">
+      {% for server in servers %}
+        <option value="{{ escape(server["name"]) }}" {% if current == server["name"] %} selected="selected" {% end %}>{{ escape(server["name"]) }}</option>
+      {% end %}
+    </select>
+    <button id="serverstart">Start</button>
   </div>
 </body>
 <script type="text/javascript" src="{{ static_url("jquery-3.2.1.min.js") }}"></script>

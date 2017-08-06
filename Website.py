@@ -58,16 +58,15 @@ class MainWebSocket(tornado.websocket.WebSocketHandler):
             if data["type"] == "console":
                 mserver.writetoserver(data["data"],self)
             elif data["type"] == "start":
-                if type(data["data"]) is dict:
-                    serverdata = data["data"]
-                    if not mserver.running():
-                        if type(serverdata["server_dir"]) is str and type(serverdata["run"]) is str and type(serverdata["args"]) is list:
-                            mserver = Minecraft.mserver(server_dir=serverdata["server_dir"],run=serverdata["run"],args=serverdata["args"])
+                if type(data["data"]) is str:
+                    if data["data"] == "start":
+                        if not mserver.running():
                             mserver.startserver()
-                        else: raise ValueError("Bad JSON")
-                elif type(data["data"]) is str and data["data"] == "start":
-                    if not mserver.running():
-                        mserver.startserver()
+                    else:
+                        if not mserver.running():
+                            sm.setcurrent(data["data"])
+                            mserver = Minecraft.mserver(socket=socks,server_dir=sm.current["data"]["server_dir"],run=sm.current["data"]["run"],args=sm.current["data"]["args"])
+                            mserver.startserver()
                 else: raise ValueError("Bad JSON")
             elif data["type"] == "status":
                 socks.sendstatus(mserver)
@@ -86,7 +85,7 @@ class MainWebSocket(tornado.websocket.WebSocketHandler):
             self.write_message(json.dumps({
                 "type":"error",
                 "content":{
-                    "output": "Improper directory. %s is not a valid path" % serverdata["server_dir"]
+                    "output": "Improper directory. %s is not a valid path" % sm.current["data"]["server_dir"]
                 }
             }))
 
@@ -96,7 +95,7 @@ class MainWebSocket(tornado.websocket.WebSocketHandler):
 # Handler for index.html at the webroot
 class MainWebsite(tornado.web.RequestHandler):
     def get(self):
-        self.render("dynamic/index.html")
+        self.render("dynamic/index.html", servers=sm.servers, current=sm.current["name"])
 
 # Handler for all other dynamically generated pages in the /dynamic/ folder
 class RenderPage(tornado.web.RequestHandler):
@@ -146,6 +145,9 @@ if __name__ == '__main__':
     stop.start()
 
     app.listen(8080)
-    mserver.startserver()
+    try:
+        mserver.startserver()
+    except NotADirectoryError:
+        print("Error: %s is not a proper directory" % sm.current["data"]["server_dir"])
     #mserver.startserver(server_dir="/home/jordan/Downloads/minecraft_server",run="minecraft_server.1.12.1.jar")
     tornado.ioloop.IOLoop.current().start()

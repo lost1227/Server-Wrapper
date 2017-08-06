@@ -58,7 +58,10 @@ class mserver:
             print("Can't execute %s, server not running",inpt)
 
     def running(self):
-        return self.proc.poll() is None
+        if self.proc is None:
+            return False
+        else:
+            return self.proc.poll() is None
 
     def stopserver(self):
         if self.running():

@@ -2,6 +2,8 @@ var websocket = new WebSocket(window.location.href.replace("http","ws") + "ws");
 
 var serveractive = false;
 
+var serverstatus;
+
 function appendToConsole(text,clas) {
   var cons = $("#console");
   var bottom = (Math.abs(cons.outerHeight() - (cons[0].scrollHeight - cons.scrollTop())) < 1);
@@ -22,6 +24,7 @@ websocket.onmessage = function(event) {
       console.log("Error: " + data.content.output)
       break;
     case "status":
+      serverstatus = data.content;
       updatestatus(data.content);
       break;
     default:
@@ -44,6 +47,13 @@ $("#consolebox").keypress(function(e) {
   }
 })
 
+$("#serverstart").click(function() {
+  websocket.send(JSON.stringify({
+    "type":"start",
+    "data":$("#serverselect").val()
+  }))
+})
+
 function askforstatus() {
   websocket.send(JSON.stringify({
     "type":"status"
@@ -53,8 +63,12 @@ function updatestatus(status) {
   if(status.active) {
     $("#consolebox").prop('disabled',false);
     $("#console").removeClass("disabledconsole");
+    $("#serverselect").prop('disabled',true);
+    $("#serverstart").prop('disabled',true);
   }  else {
     $("#consolebox").prop('disabled',true);
     $("#console").addClass("disabledconsole");
+    $("#serverselect").prop('disabled',false);
+    $("#serverstart").prop('disabled',false);
   }
 }
