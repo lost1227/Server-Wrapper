@@ -75,3 +75,4 @@ class mserver:
                 print("Process failed to stop. Killing")
                 self.proc.kill()
                 self.proc.wait()
+            print("Minecraft has been stopped")

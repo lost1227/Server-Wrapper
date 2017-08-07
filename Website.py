@@ -10,6 +10,8 @@ import Minecraft
 import ServerManager as sm
 import Settings
 
+import sys
+
 import signal
 from functools import partial
 import time
@@ -114,22 +116,10 @@ class RenderPage(tornado.web.RequestHandler):
 
 # Stop the running webserver
 def stopwebserver():
-    global running
-    running = False
     mserver.stopserver()
     tornado.ioloop.IOLoop.instance().stop()
 
-# Check for input telling the server to stop
-running = True
-def pollstop():
-    while running:
-        inp = input(">")
-        if(inp == "exit"):
-            stopwebserver()
-        elif(inp == "status"):
-            print(mserver.proc.poll() is None);
-
-
+MAX_WAIT_SECONDS_BEFORE_SHUTDOWN = 3
 def sig_handler(server, sig, frame):
     io_loop = tornado.ioloop.IOLoop.instance()
 
@@ -145,11 +135,12 @@ def sig_handler(server, sig, frame):
     def shutdown():
         print('Stopping http server')
         server.stop()
-        print('Will shutdown in %s seconds ...',
-                     MAX_WAIT_SECONDS_BEFORE_SHUTDOWN)
+        print('Will shutdown in %s seconds ...' % MAX_WAIT_SECONDS_BEFORE_SHUTDOWN)
         stop_loop(time.time() + MAX_WAIT_SECONDS_BEFORE_SHUTDOWN)
 
-    print('Caught signal: %s', sig)
+    print('Caught signal: %s' % sig)
+    print('Stopping minecraft server')
+    mserver.stopserver()
     io_loop.add_callback_from_signal(shutdown)
 
 if __name__ == '__main__':
@@ -170,8 +161,6 @@ if __name__ == '__main__':
 
     mserver = Minecraft.mserver(socket=socks,server_dir=sm.current["data"]["server_dir"],run=sm.current["data"]["run"],args=sm.current["data"]["args"])
 
-    stop = Thread(target=pollstop)
-    stop.start()
     Settings.loadsettings()
     if Settings.loaded:
         server = app.listen(Settings.settings["port"])

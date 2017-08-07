@@ -6,11 +6,11 @@ var serverstatus;
 
 function appendToConsole(text,clas) {
   var cons = $("#console");
-  var bottom = (Math.abs(cons.outerHeight() - (cons[0].scrollHeight - cons.scrollTop())) < 1);
-  console.log(bottom);
+  var bottom = (Math.abs(cons.outerHeight() - (cons[0].scrollHeight - cons.scrollTop())) < 5);
+  /*console.log(bottom);*/
   cons.append('<div class="' + clas + '">' + text + '</div>');
   if(bottom) {
-    cons.animate({scrollTop: cons[0].scrollHeight});
+    cons.animate({scrollTop: cons[0].scrollHeight},{"duration":0});
   }
 }
 
@@ -40,10 +40,10 @@ websocket.onopen = function() {
 $("#consolebox").keypress(function(e) {
   if(e.which == 13) {
     appendToConsole($("#consolebox").val(), "command_entry");
-    console.log("Sending: " + JSON.stringify({
+    /*console.log("Sending: " + JSON.stringify({
       "type":"console",
       "data":$("#consolebox").val()
-    }));
+    }));*/
     websocket.send(JSON.stringify({
       "type":"console",
       "data":$("#consolebox").val()
