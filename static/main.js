@@ -32,6 +32,11 @@ websocket.onmessage = function(event) {
       break;
   }
 }
+
+websocket.onopen = function() {
+  askforstatus();
+}
+
 $("#consolebox").keypress(function(e) {
   if(e.which == 13) {
     appendToConsole($("#consolebox").val(), "command_entry");
@@ -71,7 +76,4 @@ function updatestatus(status) {
     $("#serverselect").prop('disabled',false);
     $("#serverstart").prop('disabled',false);
   }
-}
-window.onload = function() {
-  askforstatus();
 }

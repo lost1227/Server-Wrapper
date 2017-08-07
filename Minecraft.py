@@ -46,7 +46,7 @@ class mserver:
     # Send commands to the minecraft server
     def writetoserver(self,inpt, sender=None):
         global proc
-        if self.proc.poll() is None:
+        if self.proc is not None and self.proc.poll() is None:
             self.proc.stdin.write(inpt + "\n")
             self.proc.stdin.flush()
         elif sender is not None:
