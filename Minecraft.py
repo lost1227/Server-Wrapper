@@ -25,6 +25,8 @@ class mserver:
     def startserver(self):
         if self.serverdetails["run"].endswith(".jar"):
             process = ["java", "-jar", self.serverdetails["run"]]
+        elif self.serverdetails["run"].endswith(".sh"):
+            process = ["bash",self.serverdetails["run"]]
         else:
             process = [self.serverdetails["run"]]
         process.extend(self.serverdetails["args"])

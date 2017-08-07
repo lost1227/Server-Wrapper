@@ -3,7 +3,8 @@ Description=Website to run minecraft servers
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python /usr/local/serverwrapper/Website.py
+WorkingDirectory=/usr/local/serverwrapper
+ExecStart=/usr/bin/python3.6 /usr/local/serverwrapper/Website.py
 
 [Install]
 WantedBy=multi-user.target

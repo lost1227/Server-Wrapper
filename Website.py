@@ -8,10 +8,12 @@ import json
 import os.path
 import Minecraft
 import ServerManager as sm
+import Settings
 
 import signal
 from functools import partial
 import time
+
 
 class Socketinterface:
     # The set of open websockets
@@ -170,15 +172,20 @@ if __name__ == '__main__':
 
     stop = Thread(target=pollstop)
     stop.start()
-
-    server = app.listen(8080)
+    Settings.loadsettings()
+    if Settings.loaded:
+        server = app.listen(Settings.settings["port"])
+    else:
+        print("Settings did not load, defaulting to port 8080")
+        server = app.listen(8080)
 
     signal.signal(signal.SIGTERM, partial(sig_handler, server))
     signal.signal(signal.SIGINT, partial(sig_handler, server))
 
-    try:
-        mserver.startserver()
-    except NotADirectoryError:
-        print("Error: %s is not a proper directory" % sm.current["data"]["server_dir"])
+    if Settings.loaded and Settings.settings["startonload"]:
+        try:
+            mserver.startserver()
+        except NotADirectoryError:
+            print("Error: %s is not a proper directory" % sm.current["data"]["server_dir"])
     #mserver.startserver(server_dir="/home/jordan/Downloads/minecraft_server",run="minecraft_server.1.12.1.jar")
     tornado.ioloop.IOLoop.current().start()
