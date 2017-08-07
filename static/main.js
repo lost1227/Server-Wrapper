@@ -72,3 +72,6 @@ function updatestatus(status) {
     $("#serverstart").prop('disabled',false);
   }
 }
+window.onload = function() {
+  askforstatus();
+}
