@@ -2,6 +2,7 @@ import subprocess
 import locale
 from threading import Thread
 import json
+import signal
 
 class mserver:
     thread = None # The thread directing the output from the minecraft server to the client through the websockets
@@ -69,9 +70,17 @@ class mserver:
         else:
             return self.proc.poll() is None
 
+    def interrupt(self):
+        if self.running():
+            self.proc.send_signal(signal.SIGINT)
+            try:
+                self.proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                stopserver()
+
     def stopserver(self):
         if self.running():
-            print("Waiting for minecraft to stop")
+            print("Waiting for process to stop")
             self.writetoserver("stop")
             try:
                 self.proc.wait(timeout=10)
@@ -79,4 +88,4 @@ class mserver:
                 print("Process failed to stop. Killing")
                 self.proc.kill()
                 self.proc.wait()
-            print("Minecraft has been stopped")
+            print("Process has been stopped")
