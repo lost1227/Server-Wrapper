@@ -30,7 +30,11 @@ class mserver:
         else:
             process = [self.serverdetails["run"]]
         process.extend(self.serverdetails["args"])
-        self.proc = subprocess.Popen(process,stdin=subprocess.PIPE,stdout=subprocess.PIPE,encoding=locale.getpreferredencoding(),cwd=self.serverdetails["server_dir"])
+        try:
+            self.proc = subprocess.Popen(process,stdin=subprocess.PIPE,stdout=subprocess.PIPE,encoding=locale.getpreferredencoding(),cwd=self.serverdetails["server_dir"])
+        except (NotADirectoryError, FileNotFoundError):
+            print("Bad arguments")
+            return
         thread = Thread(target=self.loopserver,kwargs={"proc":self.proc})
         thread.start()
         self.web.sendstatus(self)

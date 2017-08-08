@@ -9,6 +9,7 @@ import os.path
 import Minecraft
 import ServerManager as sm
 import Settings
+import login
 
 import sys
 
@@ -100,10 +101,15 @@ class MainWebSocket(tornado.websocket.WebSocketHandler):
     # Don't do anything when the websocket closes
     def on_close(self):
         pass
+
 # Handler for index.html at the webroot
 class MainWebsite(tornado.web.RequestHandler):
     def get(self):
-        self.render("dynamic/index.html", servers=sm.servers, current=sm.current["name"])
+        if login.isloggedin(self.get_secure_cookie("auth")):
+            self.render("protected/index.html", servers=sm.servers, current=sm.current["name"])
+        else:
+            self.write("Not logged in")
+            self.redirect(r"/login")
 
 # Handler for all other dynamically generated pages in the /dynamic/ folder
 class RenderPage(tornado.web.RequestHandler):
@@ -112,7 +118,10 @@ class RenderPage(tornado.web.RequestHandler):
              self.set_header("Content-Type", 'text/css; charset="utf-8"')
         elif(self.request.uri.endswith(".js")):
             self.set_header("Content-Type", 'text/javascript; charset="utf-8"')
-        self.render(self.request.uri.strip("/"))
+        try:
+            self.render(self.request.uri.strip("/"))
+        except FileNotFoundError:
+            self.send_error(404)
 
 # Stop the running webserver
 def stopwebserver():
@@ -144,14 +153,26 @@ def sig_handler(server, sig, frame):
     io_loop.add_callback_from_signal(shutdown)
 
 if __name__ == '__main__':
+    Settings.loadsettings()
     settings = {
-        "static_path": os.path.join(os.path.dirname(__file__), "static")
+        "static_path": os.path.join(os.path.dirname(__file__), "static"),
+        "cookie_secret": Settings.settings["cookie_secret"]
     }
-    app = tornado.web.Application([
-        (r"/",MainWebsite),
-        (r"/dynamic/.*", RenderPage),
-        (r"/ws", MainWebSocket),
-    ],**settings)
+    if Settings.settings["addusers"]:
+        app = tornado.web.Application([
+            (r"/",MainWebsite),
+            (r"/dynamic/.*", RenderPage),
+            (r"/ws", MainWebSocket),
+            (r"/login", login.LoginHandler),
+            (r"/adduser", login.AddUser)
+        ],**settings)
+    else:
+        app = tornado.web.Application([
+            (r"/",MainWebsite),
+            (r"/dynamic/.*", RenderPage),
+            (r"/ws", MainWebSocket),
+            (r"/login", login.LoginHandler)
+        ],**settings)
 
     socks = Socketinterface()
 
@@ -161,7 +182,6 @@ if __name__ == '__main__':
 
     mserver = Minecraft.mserver(socket=socks,server_dir=sm.current["data"]["server_dir"],run=sm.current["data"]["run"],args=sm.current["data"]["args"])
 
-    Settings.loadsettings()
     if Settings.loaded:
         server = app.listen(Settings.settings["port"])
     else:
