@@ -36,6 +36,9 @@ websocket.onmessage = function(event) {
 websocket.onopen = function() {
   askforstatus();
 }
+websocket.onclose = function() {
+  updatestatus({"active":false})
+}
 
 $("#consolebox").keypress(function(e) {
   if(e.which == 13) {
