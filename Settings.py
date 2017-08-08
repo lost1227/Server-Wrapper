@@ -17,12 +17,27 @@ def loadsettings():
                 pass
             else: raise ValueError('Bad type')
         else: raise ValueError('Missing Field')
+        if "ssl" in settings:
+            if type(settings["ssl"]) is dict:
+                if "enabled" in settings["ssl"] and "certfile" in settings["ssl"] and "keyfile" in settings["ssl"] and "port" in settings["ssl"]:
+                    if type(settings["ssl"]["enabled"]) is bool and type(settings["ssl"]["certfile"]) is str and type(settings["ssl"]["keyfile"]) is str and type(settings["ssl"]["port"]) is int:
+                        pass
+                    else: raise ValueError('Bad type')
+                else: raise ValueError('Missing field')
+            else: raise ValueERror('Bad type')
+        else:
+            settings["ssl"] = {
+                "enabled": False,
+                "certfile":str(),
+                "keyfile":str(),
+                "port":443
+            }
         if "cookie_secret" in settings:
             if type(settings["cookie_secret"]) is str:
                 pass
         else:
             settings["cookie_secret"] = base64.b64encode(os.urandom(50)).decode('ascii')
-            savesettings()
+        savesettings()
     except json.decoder.JSONDecodeError:
         print("Error! settings.json is malformed. Server config cannot be loaded. Please check for syntax errors")
         loaded = False

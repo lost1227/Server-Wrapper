@@ -1,6 +1,7 @@
 import tornado.websocket
 import tornado.web
 import tornado.ioloop
+import tornado.httpserver
 import subprocess
 import locale
 from threading import Thread
@@ -51,6 +52,9 @@ class Socketinterface:
             }
         })
 
+class RedirectToSSL(tornado.websocket.WebSocketHandler):
+    def get(self):
+        self.redirect("https://%s" % self.request.full_url()[len("http://"):], permanent=True)
 # The main handler for websocket connections
 class MainWebSocket(tornado.websocket.WebSocketHandler):
     # Adds the newly formed websocket to the set of websockets
@@ -182,19 +186,24 @@ if __name__ == '__main__':
 
     mserver = Minecraft.mserver(socket=socks,server_dir=sm.current["data"]["server_dir"],run=sm.current["data"]["run"],args=sm.current["data"]["args"])
 
-    if Settings.loaded:
-        server = app.listen(Settings.settings["port"])
+    if Settings.loaded and Settings.settings["ssl"]["enabled"]:
+        server = tornado.httpserver.HTTPServer(app,ssl_options={
+            "certfile":Settings.settings["ssl"]["certfile"],
+            "keyfile":Settings.settings["ssl"]["keyfile"]
+        })
+        server.listen(Settings.settings["ssl"]["port"])
+
+        redirapp = tornado.web.Application([
+        (r"/.*", RedirectToSSL)
+        ])
+        redirapp.listen(Settings.settings["port"])
     else:
-        print("Settings did not load, defaulting to port 8080")
-        server = app.listen(8080)
+        server = app.listen(Settings.settings["port"])
 
     signal.signal(signal.SIGTERM, partial(sig_handler, server))
     signal.signal(signal.SIGINT, partial(sig_handler, server))
 
     if Settings.loaded and Settings.settings["startonload"]:
-        try:
-            mserver.startserver()
-        except NotADirectoryError:
-            print("Error: %s is not a proper directory" % sm.current["data"]["server_dir"])
+        mserver.startserver()
     #mserver.startserver(server_dir="/home/jordan/Downloads/minecraft_server",run="minecraft_server.1.12.1.jar")
     tornado.ioloop.IOLoop.current().start()
