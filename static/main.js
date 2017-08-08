@@ -77,3 +77,8 @@ function updatestatus(status) {
     $("#serverstart").prop('disabled',false);
   }
 }
+$("#sigint").click(function() {
+  websocket.send(JSON.stringify({
+    "type":"sigint"
+  }))
+})
