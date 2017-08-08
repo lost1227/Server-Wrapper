@@ -87,7 +87,11 @@ class MainWebSocket(tornado.websocket.WebSocketHandler):
                 stopwebserver()
             elif data["type"] == "sigint":
                 if mserver.running():
-                    mserver.interrupt()
+                    mserver.sigint()
+                    socks.sendstatus(mserver)
+            elif data["type"] == "kill":
+                if mserver.running():
+                    mserver.stopserver()
                     socks.sendstatus(mserver)
             else:
                 raise ValueError("Bad JSON")

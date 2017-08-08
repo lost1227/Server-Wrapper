@@ -70,17 +70,19 @@ class mserver:
         else:
             return self.proc.poll() is None
 
-    def interrupt(self):
+    def sigint(self):
         if self.running():
             self.proc.send_signal(signal.SIGINT)
             try:
                 self.proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
-                stopserver()
+                pass
 
     def stopserver(self):
         if self.running():
             print("Waiting for process to stop")
+            self.sigint()
+            if not self.running(): return
             self.writetoserver("stop")
             try:
                 self.proc.wait(timeout=10)

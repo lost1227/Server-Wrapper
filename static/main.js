@@ -82,3 +82,8 @@ $("#sigint").click(function() {
     "type":"sigint"
   }))
 })
+$("#kill").click(function() {
+  websocket.send(JSON.stringify({
+    "type":"kill"
+  }))
+})
