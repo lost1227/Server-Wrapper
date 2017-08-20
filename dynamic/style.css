@@ -10,6 +10,7 @@ body {
   box-shadow: 0 0 10px 0px black;
   background-color: #FFFFFF;
   padding: 20px;
+  box-sizing: border-box;
 }
 #consolearea {
   border: 2px solid #bbbbbb;
