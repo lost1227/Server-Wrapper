@@ -2,11 +2,33 @@ import tornado.web
 import sqlite3
 from passlib.hash import pbkdf2_sha256 as pcrypt
 import uuid
+import os
 
 conn = None
 c = None
 
 loggedinusers = set()
+
+def verifyTable():
+    try:
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' and name='users';")
+        if c.fetchall() == []:
+            raise sqlite3.OperationalError("Table Missing")
+        c.execute("PRAGMA table_info(users);")
+        if c.fetchall() != [(0, 'key', 'INTEGER', 0, None, 1), (1, 'name', 'TEXT', 0, None, 0), (2, 'password', 'TEXT', 0, None, 0)]:
+            c.execute("DROP TABLE users;")
+            raise sqlite3.OperationalError("Malformed Table")
+    except sqlite3.OperationalError:
+        print("Password database malformed. Resetting...");
+        init()
+
+def execute(query, args=None):
+    global c
+    verifyTable()
+    if args is None:
+        c.execute(query)
+    else:
+        c.execute(query, args)
 
 def init():
     global conn
@@ -22,17 +44,27 @@ def adduser(name,passwd):
     if conn == None or c == None:
         init()
     passhash = pcrypt.hash(passwd)
-    c.execute("SELECT password FROM users WHERE name LIKE ?;",(name,))
+    execute("SELECT password FROM users WHERE name LIKE ?;",(name,))
     if c.fetchall() == []:
-        c.execute("INSERT INTO users (name,password) VALUES (?,?);",(name,passhash))
+        execute("INSERT INTO users (name,password) VALUES (?,?);",(name,passhash))
         conn.commit()
+        return('User created successfully. <a href="/">Login</a>')
     else:
-        print("Cannot create user, user exists")
+        return("Cannot create user, user exists")
+
+def deluser(name,passwd):
+    if conn == None or c == None:
+        init()
+    if(testuser(name,passwd)):
+        execute("DELETE FROM users WHERE name LIKE ?;",(name,))
+        return('User deleted')
+    else:
+        return('Bad username/password')
 
 def testuser(name,passwd):
     if conn == None or c == None:
         init()
-    c.execute("SELECT password FROM users WHERE name LIKE ?;",(name,))
+    execute("SELECT password FROM users WHERE name LIKE ?;",(name,))
     res = c.fetchall()
     if res == []:
         return False
@@ -43,7 +75,7 @@ def changepass(name,passwd,newpasswd):
     if conn == None or c == None:
         init()
     if testuser(name,passwd):
-        c.execute("UPDATE users SET password = ? WHERE name LIKE ?;",(newpasswd, name))
+        execute("UPDATE users SET password = ? WHERE name LIKE ?;",(newpasswd, name))
         conn.commit()
 
 def isloggedin(uid):
@@ -77,7 +109,9 @@ class AddUser(tornado.web.RequestHandler):
     def post(self):
         try:
             if self.get_body_argument("method") == "add":
-                adduser(self.get_body_argument("name"),self.get_body_argument("pass"))
+                self.write(adduser(self.get_body_argument("name"),self.get_body_argument("pass")))
+            elif self.get_body_argument("method") == "remove":
+                self.write(deluser(self.get_body_argument("name"),self.get_body_argument("pass")))
             else:
                 changepass(self.get_body_argument("name"),self.get_body_argument("pass"),self.get_body_argument("newpass"))
         except tornado.web.MissingArgumentError:
