@@ -8,7 +8,7 @@ Features a login page
 
 The main console:
 ![Main Console](/screenshots/main.png?raw=true)
-Features a drop down menu to choose a server. The interrupt button sends a SIGINT signal, and the kill button kills the server.
+The console is used to interact with the server. It features a drop down menu to choose a server. The interrupt button sends a SIGINT signal, and the kill button kills the server.
 
 ### Configuration
 

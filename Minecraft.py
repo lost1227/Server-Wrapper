@@ -83,7 +83,7 @@ class mserver:
             print("Waiting for process to stop")
             self.sigint()
             if not self.running(): return
-            self.writetoserver("stop")
+            self.writetoserver("stop\n")
             try:
                 self.proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
